@@ -27,6 +27,8 @@ dependencies:
   dropdown_search: ^0.4.4
   syncfusion_flutter_sliders: ^18.3.40-beta
   http: ^0.12.2
+  sqflite: any
+  path_provider: any
   flutter:
     sdk: flutter
 
