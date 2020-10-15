@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:inf_man_project/HexColor.dart';
 import 'package:inf_man_project/dataModel.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
-
+import 'package:intl/intl.dart';
 import 'constants.dart';
 
 void main() {
@@ -26,78 +26,73 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  String selectedDDLocation = 'World';
+  String selectedMapLocation;
   @override
   void initState() {
     super.initState();
-    getStats();
+  }
+
+  Widget getCountryDropdown() {
+    return Container(
+      width: MediaQuery.of(context).size.width / 6,
+      padding: const EdgeInsets.all(12.0),
+      child: DropdownSearch<String>(
+        mode: Mode.MENU,
+        showSelectedItem: true,
+        items: countriesList,
+        label: "Location",
+        showSearchBox: true,
+        dropdownBuilder: (context, item, isSelected) => Text(item, style: TextStyle(fontSize: 23)),
+        dropdownSearchDecoration: InputDecoration(
+          labelStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          hoverColor: Colors.red,
+          contentPadding: EdgeInsets.fromLTRB(12, 12, 0, 0),
+          border: OutlineInputBorder(),
+        ),
+        onChanged: (value) {
+          selectedDDLocation = value;
+          print(selectedDDLocation);
+          setState(() {});
+        },
+        selectedItem: selectedDDLocation,
+        maxHeight: MediaQuery.of(context).size.height / 2,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: HexColor.fromHex('#4b89ac'),
-        title: Text('COVID-19', style: TextStyle(fontSize: 25)),
-        centerTitle: true,
-      ),
       body: Stack(children: <Widget>[
-        MySfMap(),
-        Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            children: [
-              DropdownSearch<String>(
-                mode: Mode.MENU,
-                showSelectedItem: true,
-                items: countriesList,
-                label: "Location",
-                showSearchBox: true,
-                dropdownBuilder: (context, item, isSelected) => Text(item, style: TextStyle(fontSize: 23)),
-                dropdownSearchDecoration: InputDecoration(
-                  labelStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  hoverColor: Colors.red,
-                  contentPadding: EdgeInsets.fromLTRB(12, 12, 0, 0),
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) => print(value),
-                selectedItem: "Russia",
-                maxHeight: MediaQuery.of(context).size.height / 2,
-              ),
-            ],
-          ),
-        ),
+        MySfMap(selectedDDLocation),
+        getCountryDropdown(),
       ]),
     );
   }
 }
 
 class MySfMap extends StatefulWidget {
-  const MySfMap();
-
+  const MySfMap(this.location);
+  final String location;
   @override
-  _MySfMapState createState() => _MySfMapState();
+  _MySfMapState createState() => _MySfMapState(location);
 }
 
 class _MySfMapState extends State<MySfMap> {
+  _MySfMapState(this.location);
+  final String location;
+
   MapShapeLayerDelegate _mapShapeDelegate;
   List<CovidTotalDataModel> _covidTotalData;
-  List<MapColorMapper> _colorMappers;
-  MapZoomPanBehavior _zoomPanBehavior;
+  final MapZoomPanBehavior _zoomPanBehavior = MapZoomPanBehavior(maxZoomLevel: 7, toolbarSettings: MapToolbarSettings(direction: Axis.vertical));
+  var formatter = NumberFormat('###,000');
+  List<MapColorMapper> _colorMappers = myColorMappers;
+  String selectedMapLocation;
+  MapShapeLayerController mapController = MapShapeLayerController();
 
   Future<bool> asyncInit() async {
-    _zoomPanBehavior = MapZoomPanBehavior(maxZoomLevel: 7);
     _covidTotalData = await getTotalData();
-
-    _colorMappers = [
-      MapColorMapper(from: 0, to: 9999, color: HexColor.fromHex('#ffd460')),
-      MapColorMapper(from: 10000, to: 99999, color: HexColor.fromHex('#f07b3f')),
-      MapColorMapper(from: 100000, to: 499999, color: HexColor.fromHex('#ea5455')),
-      MapColorMapper(from: 500000, to: 999999, color: HexColor.fromHex('#973961')),
-      MapColorMapper(from: 1000000, to: 1499999, color: HexColor.fromHex('#623448')),
-      MapColorMapper(from: 1500000, to: 1999999, color: HexColor.fromHex('#36162e')),
-      MapColorMapper(from: 2000000, to: 3000000, color: HexColor.fromHex('#200f21')),
-      MapColorMapper(from: 5000000, to: 5000002, color: HexColor.fromHex('#200f21')),
-    ];
 
     _mapShapeDelegate = MapShapeLayerDelegate(
       shapeFile: 'assets/world_map.json',
@@ -105,21 +100,50 @@ class _MySfMapState extends State<MySfMap> {
       dataCount: _covidTotalData.length,
       primaryValueMapper: (int index) => _covidTotalData[index].countryName,
       shapeTooltipTextMapper: (int index) {
+        String countryName = _covidTotalData[index].countryName;
+        if (selectedMapLocation != _covidTotalData[index].countryName) selectedMapLocation = _covidTotalData[index].countryName;
+
         return 'Country : ' +
-            (_covidTotalData[index].countryName) +
+            countryName +
             '\nActive: ' +
-            _covidTotalData[index].active.toString() +
+            formatter.format(_covidTotalData[index].active) +
             '\nRecovered: ' +
-            _covidTotalData[index].recovered.toString() +
+            formatter.format(_covidTotalData[index].recovered) +
             '\nDeaths: ' +
-            _covidTotalData[index].deaths.toString() +
+            formatter.format(_covidTotalData[index].deaths) +
             '\nTotal: ' +
-            _covidTotalData[index].total.toString();
+            formatter.format(_covidTotalData[index].total);
       },
       shapeColorValueMapper: (int index) => _covidTotalData[index].active,
       shapeColorMappers: _colorMappers,
     );
     return true;
+  }
+
+  void showParamsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => myBottomSheet(),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
+    ).then((value) => mapController.selectedIndex = -1);
+  }
+
+  Widget myBottomSheet() {
+    return Container(
+        height: MediaQuery.of(context).size.height / 5,
+        decoration: BoxDecoration(
+          color: HexColor.fromHex('#efecec').withOpacity(.7),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.only(
+          right: 15,
+          left: 15,
+          bottom: (MediaQuery.of(context).viewInsets.bottom == 0) ? 15 : MediaQuery.of(context).viewInsets.bottom + 5,
+        ),
+        child: Container(
+          child: Text(selectedMapLocation, style: TextStyle(fontSize: 26)),
+        ));
   }
 
   @override
@@ -129,16 +153,32 @@ class _MySfMapState extends State<MySfMap> {
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data == false) return Center(child: CircularProgressIndicator());
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
-          child: SfMaps(
-            layers: <MapShapeLayer>[
-              MapShapeLayer(
-                // shapeTooltipBuilder: (context, index) => Container(color: Colors.red),
-                delegate: _mapShapeDelegate,
-                enableShapeTooltip: true,
-                zoomPanBehavior: _zoomPanBehavior,
-              )
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+          child: GestureDetector(
+            onTap: () {
+              var index = mapController.selectedIndex;
+              if (index != -1) showParamsBottomSheet();
+            },
+            child: SfMaps(
+              layers: <MapShapeLayer>[
+                MapShapeLayer(
+                  delegate: _mapShapeDelegate,
+                  enableSelection: true,
+                  controller: mapController,
+                  selectionSettings: MapSelectionSettings(
+                    color: HexColor.fromHex('#085f63'),
+                    strokeWidth: 3,
+                    strokeColor: HexColor.fromHex('#293462'),
+                  ),
+                  tooltipSettings: MapTooltipSettings(
+                    color: HexColor.fromHex('#303a52'),
+                    textStyle: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                  enableShapeTooltip: true,
+                  zoomPanBehavior: _zoomPanBehavior,
+                )
+              ],
+            ),
           ),
         );
       },
