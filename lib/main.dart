@@ -73,16 +73,13 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class MySfMap extends StatefulWidget {
-  const MySfMap(this.location);
-  final String location;
+  const MySfMap(this.selectedDDLocation);
+  final String selectedDDLocation;
   @override
-  _MySfMapState createState() => _MySfMapState(location);
+  _MySfMapState createState() => _MySfMapState();
 }
 
 class _MySfMapState extends State<MySfMap> {
-  _MySfMapState(this.location);
-  final String location;
-
   MapShapeLayerDelegate _mapShapeDelegate;
   List<CovidTotalDataModel> _covidTotalData;
   final MapZoomPanBehavior _zoomPanBehavior = MapZoomPanBehavior(maxZoomLevel: 7, toolbarSettings: MapToolbarSettings(direction: Axis.vertical));
@@ -92,7 +89,7 @@ class _MySfMapState extends State<MySfMap> {
   MapShapeLayerController mapController = MapShapeLayerController();
 
   Future<bool> asyncInit() async {
-    _covidTotalData = await getTotalData();
+    _covidTotalData = await getTotalData(widget.selectedDDLocation);
 
     _mapShapeDelegate = MapShapeLayerDelegate(
       shapeFile: 'assets/world_map.json',
@@ -100,11 +97,8 @@ class _MySfMapState extends State<MySfMap> {
       dataCount: _covidTotalData.length,
       primaryValueMapper: (int index) => _covidTotalData[index].countryName,
       shapeTooltipTextMapper: (int index) {
-        String countryName = _covidTotalData[index].countryName;
-        if (selectedMapLocation != _covidTotalData[index].countryName) selectedMapLocation = _covidTotalData[index].countryName;
-
         return 'Country : ' +
-            countryName +
+            _covidTotalData[index].countryName +
             '\nActive: ' +
             formatter.format(_covidTotalData[index].active) +
             '\nRecovered: ' +
@@ -131,9 +125,9 @@ class _MySfMapState extends State<MySfMap> {
 
   Widget myBottomSheet() {
     return Container(
-        height: MediaQuery.of(context).size.height / 5,
+        height: MediaQuery.of(context).size.height / 3,
         decoration: BoxDecoration(
-          color: HexColor.fromHex('#efecec').withOpacity(.7),
+          color: HexColor.fromHex('#efecec').withOpacity(.8),
           borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         ),
         padding: EdgeInsets.only(
@@ -142,7 +136,14 @@ class _MySfMapState extends State<MySfMap> {
           bottom: (MediaQuery.of(context).viewInsets.bottom == 0) ? 15 : MediaQuery.of(context).viewInsets.bottom + 5,
         ),
         child: Container(
-          child: Text(selectedMapLocation, style: TextStyle(fontSize: 26)),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(selectedMapLocation, style: TextStyle(fontSize: 26)),
+              Text('Some data here with prediction and graphs'),
+            ],
+          ),
         ));
   }
 
@@ -157,7 +158,10 @@ class _MySfMapState extends State<MySfMap> {
           child: GestureDetector(
             onTap: () {
               var index = mapController.selectedIndex;
-              if (index != -1) showParamsBottomSheet();
+              if (index != -1) {
+                selectedMapLocation = _covidTotalData[index].countryName;
+                showParamsBottomSheet();
+              }
             },
             child: SfMaps(
               layers: <MapShapeLayer>[
@@ -165,6 +169,13 @@ class _MySfMapState extends State<MySfMap> {
                   delegate: _mapShapeDelegate,
                   enableSelection: true,
                   controller: mapController,
+                  legendSource: MapElement.shape,
+                  legendSettings: MapLegendSettings(
+                    position: MapLegendPosition.bottom,
+                    textStyle: TextStyle(fontSize: 15, color: Colors.black),
+                    iconSize: Size(15, 15),
+                    iconType: MapIconType.circle,
+                  ),
                   selectionSettings: MapSelectionSettings(
                     color: HexColor.fromHex('#085f63'),
                     strokeWidth: 3,

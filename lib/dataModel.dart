@@ -11,12 +11,14 @@ class CovidTotalDataModel {
   final int deaths;
 }
 
-Future<http.Response> getStats() async {
+Future<http.Response> getStats(String location) async {
   var headers = {
     'x-rapidapi-host': "covid-193.p.rapidapi.com",
     'x-rapidapi-key': "96c9bf6347mshaa70842b22ac472p17ea96jsncd83f482d9aa",
   };
-  var response = await http.get('https://rapidapi.p.rapidapi.com/statistics', headers: headers);
+  Map<String, String> query = location == 'World' ? null : {'country': location};
+  var uri = Uri.https('rapidapi.p.rapidapi.com', '/statistics', query);
+  var response = await http.get(uri, headers: headers);
   return response;
 }
 
@@ -51,8 +53,8 @@ var replacedName = {
   'Puerto-Rico': 'Puerto Rico'
 };
 
-Future<List<CovidTotalDataModel>> getTotalData() async {
-  var resp = await getStats();
+Future<List<CovidTotalDataModel>> getTotalData(String location) async {
+  var resp = await getStats(location);
   List decoded = jsonDecode(resp.body)['response'];
 
   return List.generate(decoded.length, (i) {
