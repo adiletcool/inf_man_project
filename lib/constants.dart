@@ -1,15 +1,53 @@
 import 'package:syncfusion_flutter_maps/maps.dart' show MapColorMapper;
 import 'HexColor.dart';
+import 'package:intl/intl.dart';
 
-List<MapColorMapper> myColorMappers = [
-  MapColorMapper(from: 0, to: 9999, color: HexColor.fromHex('#ffd460')),
-  MapColorMapper(from: 10000, to: 99999, color: HexColor.fromHex('#f07b3f')),
-  MapColorMapper(from: 100000, to: 499999, color: HexColor.fromHex('#ea5455')),
-  MapColorMapper(from: 500000, to: 999999, color: HexColor.fromHex('#973961')),
-  MapColorMapper(from: 1000000, to: 1499999, color: HexColor.fromHex('#623448')),
-  MapColorMapper(from: 1500000, to: 1999999, color: HexColor.fromHex('#36162e')),
-  MapColorMapper(from: 2000000, to: 3000000, color: HexColor.fromHex('#200f21')),
-];
+var formatter = NumberFormat('###,000');
+String formatNumber(int number) {
+  return number > 1000 ? formatter.format(number) : number.toString();
+}
+
+Map<String, List<MapColorMapper>> myColorMappers = {
+  'Active': [
+    MapColorMapper(from: 0, to: 9999, color: HexColor.fromHex('#ffd460')),
+    MapColorMapper(from: 10000, to: 99999, color: HexColor.fromHex('#f07b3f')),
+    MapColorMapper(from: 100000, to: 499999, color: HexColor.fromHex('#ea5455')),
+    MapColorMapper(from: 500000, to: 999999, color: HexColor.fromHex('#973961')),
+    MapColorMapper(from: 1000000, to: 1499999, color: HexColor.fromHex('#623448')),
+    MapColorMapper(from: 1500000, to: 1999999, color: HexColor.fromHex('#36162e')),
+    MapColorMapper(from: 2000000, to: 3000000, color: HexColor.fromHex('#200f21')),
+  ],
+  'Total': [
+    MapColorMapper(from: 0, to: 49999, color: HexColor.fromHex('#ffd460')),
+    MapColorMapper(from: 50000, to: 99999, color: HexColor.fromHex('#f07b3f')),
+    MapColorMapper(from: 100000, to: 299999, color: HexColor.fromHex('#ea5455')),
+    MapColorMapper(from: 300000, to: 599999, color: HexColor.fromHex('#973961')),
+    MapColorMapper(from: 600000, to: 1299999, color: HexColor.fromHex('#623448')),
+    MapColorMapper(from: 1300000, to: 1999999, color: HexColor.fromHex('#36162e')),
+    MapColorMapper(from: 2000000, to: 4000000, color: HexColor.fromHex('#200f21')),
+    MapColorMapper(from: 4000000, to: 20000000, color: HexColor.fromHex('160F21')),
+  ],
+  'Recovered': [
+    MapColorMapper(from: 0, to: 9999, color: HexColor.fromHex('#ffd460')),
+    MapColorMapper(from: 10000, to: 99999, color: HexColor.fromHex('#f07b3f')),
+    MapColorMapper(from: 100000, to: 499999, color: HexColor.fromHex('#ea5455')),
+    MapColorMapper(from: 500000, to: 999999, color: HexColor.fromHex('#973961')),
+    MapColorMapper(from: 1000000, to: 1499999, color: HexColor.fromHex('#623448')),
+    MapColorMapper(from: 1500000, to: 1999999, color: HexColor.fromHex('#36162e')),
+    MapColorMapper(from: 2000000, to: 2999999, color: HexColor.fromHex('#200f21')),
+    MapColorMapper(from: 3000000, to: 200000000, color: HexColor.fromHex('160F21')),
+  ],
+  'Deaths': [
+    MapColorMapper(from: 0, to: 99, color: HexColor.fromHex('#ffd460')),
+    MapColorMapper(from: 100, to: 999, color: HexColor.fromHex('#f07b3f')),
+    MapColorMapper(from: 1000, to: 4999, color: HexColor.fromHex('#ea5455')),
+    MapColorMapper(from: 5000, to: 9999, color: HexColor.fromHex('#973961')),
+    MapColorMapper(from: 10000, to: 29999, color: HexColor.fromHex('#623448')),
+    MapColorMapper(from: 30000, to: 69999, color: HexColor.fromHex('#36162e')),
+    MapColorMapper(from: 70000, to: 179999, color: HexColor.fromHex('#200f21')),
+    MapColorMapper(from: 180000, to: 3000000, color: HexColor.fromHex('#200f21')),
+  ],
+};
 
 List<String> countriesList = <String>[
   'World',
@@ -233,5 +271,5 @@ List<String> countriesList = <String>[
   'Western-Sahara',
   'Yemen',
   'Zambia',
-  'Zimbabwe'
+  'Zimbabwe',
 ];

@@ -9,6 +9,8 @@ class CovidTotalDataModel {
   final int total;
   final int recovered;
   final int deaths;
+
+  Map<String, dynamic> get params => {'Active': active, 'Total': total, 'Recovered': recovered, 'Deaths': deaths};
 }
 
 Future<http.Response> getStats(String location) async {

@@ -28,15 +28,26 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String selectedDDLocation = 'World';
   String selectedMapLocation;
+  List<String> mapperAvailable = ['Active', 'Total', 'Recovered', 'Deaths'];
+  String shapeColorMapper;
+
   @override
   void initState() {
     super.initState();
+    shapeColorMapper = mapperAvailable[0];
+  }
+
+  void setNextMapper() {
+    int nextId = mapperAvailable.indexOf(shapeColorMapper) + 1;
+    if (nextId > mapperAvailable.length - 1) nextId -= mapperAvailable.length;
+    shapeColorMapper = mapperAvailable[nextId];
+    setState(() {});
   }
 
   Widget getCountryDropdown() {
     return Container(
-      width: MediaQuery.of(context).size.width / 6,
-      padding: const EdgeInsets.all(12.0),
+      width: 350, // MediaQuery.of(context).size.width / 6,
+      padding: const EdgeInsets.only(top: 20, left: 15),
       child: DropdownSearch<String>(
         mode: Mode.MENU,
         showSelectedItem: true,
@@ -46,17 +57,28 @@ class _MyHomePageState extends State<MyHomePage> {
         dropdownBuilder: (context, item, isSelected) => Text(item, style: TextStyle(fontSize: 23)),
         dropdownSearchDecoration: InputDecoration(
           labelStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          hoverColor: Colors.red,
           contentPadding: EdgeInsets.fromLTRB(12, 12, 0, 0),
           border: OutlineInputBorder(),
         ),
-        onChanged: (value) {
-          selectedDDLocation = value;
-          print(selectedDDLocation);
-          setState(() {});
-        },
+        onChanged: (value) => setState(() => selectedDDLocation = value),
         selectedItem: selectedDDLocation,
-        maxHeight: MediaQuery.of(context).size.height / 2,
+        maxHeight: MediaQuery.of(context).size.height * .7,
+      ),
+    );
+  }
+
+  Widget colorizeButton() {
+    Color _color = HexColor.fromHex('#303a52');
+    return Container(
+      padding: const EdgeInsets.only(right: 15),
+      child: FlatButton.icon(
+        focusColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        color: Colors.transparent,
+        hoverColor: Colors.transparent,
+        onPressed: () => setNextMapper(),
+        icon: Icon(Icons.palette, size: 30, color: _color),
+        label: Text('$shapeColorMapper cases', style: TextStyle(fontSize: 20, color: _color)),
       ),
     );
   }
@@ -64,17 +86,27 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(children: <Widget>[
-        MySfMap(selectedDDLocation),
-        getCountryDropdown(),
-      ]),
+      body: Stack(
+        children: <Widget>[
+          MySfMap(selectedDDLocation, shapeColorMapper),
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              getCountryDropdown(),
+              colorizeButton(),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
 class MySfMap extends StatefulWidget {
-  const MySfMap(this.selectedDDLocation);
+  const MySfMap(this.selectedDDLocation, this.shapeColorMapper);
   final String selectedDDLocation;
+  final String shapeColorMapper;
   @override
   _MySfMapState createState() => _MySfMapState();
 }
@@ -82,11 +114,19 @@ class MySfMap extends StatefulWidget {
 class _MySfMapState extends State<MySfMap> {
   MapShapeLayerDelegate _mapShapeDelegate;
   List<CovidTotalDataModel> _covidTotalData;
-  final MapZoomPanBehavior _zoomPanBehavior = MapZoomPanBehavior(maxZoomLevel: 7, toolbarSettings: MapToolbarSettings(direction: Axis.vertical));
-  var formatter = NumberFormat('###,000');
-  List<MapColorMapper> _colorMappers = myColorMappers;
+  final MapZoomPanBehavior _zoomPanBehavior = MapZoomPanBehavior(
+    enablePinching: true, // TODO: errors on scrolling
+    maxZoomLevel: 7,
+    // ZoomToolBar
+    toolbarSettings: MapToolbarSettings(
+      direction: Axis.vertical,
+      position: MapToolbarPosition.bottomRight,
+      // itemBackgroundColor: Colors.red,
+    ),
+  );
   String selectedMapLocation;
   MapShapeLayerController mapController = MapShapeLayerController();
+  DateTime today = DateTime.now().toLocal();
 
   Future<bool> asyncInit() async {
     _covidTotalData = await getTotalData(widget.selectedDDLocation);
@@ -96,34 +136,34 @@ class _MySfMapState extends State<MySfMap> {
       shapeDataField: 'name',
       dataCount: _covidTotalData.length,
       primaryValueMapper: (int index) => _covidTotalData[index].countryName,
+      shapeColorValueMapper: (int index) => _covidTotalData[index].params[widget.shapeColorMapper], //
+      shapeColorMappers: myColorMappers[widget.shapeColorMapper], //
       shapeTooltipTextMapper: (int index) {
         return 'Country : ' +
             _covidTotalData[index].countryName +
             '\nActive: ' +
-            formatter.format(_covidTotalData[index].active) +
+            formatNumber(_covidTotalData[index].active) +
             '\nRecovered: ' +
-            formatter.format(_covidTotalData[index].recovered) +
+            formatNumber(_covidTotalData[index].recovered) +
             '\nDeaths: ' +
-            formatter.format(_covidTotalData[index].deaths) +
+            formatNumber(_covidTotalData[index].deaths) +
             '\nTotal: ' +
-            formatter.format(_covidTotalData[index].total);
+            formatNumber(_covidTotalData[index].total);
       },
-      shapeColorValueMapper: (int index) => _covidTotalData[index].active,
-      shapeColorMappers: _colorMappers,
     );
     return true;
   }
 
-  void showParamsBottomSheet() {
+  void showParamsBottomSheet(int index) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => myBottomSheet(),
+      builder: (context) => myBottomSheet(index),
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.grey.withOpacity(.5),
     ).then((value) => mapController.selectedIndex = -1);
   }
 
-  Widget myBottomSheet() {
+  Widget myBottomSheet(int index) {
     return Container(
         height: MediaQuery.of(context).size.height / 3,
         decoration: BoxDecoration(
@@ -140,8 +180,31 @@ class _MySfMapState extends State<MySfMap> {
             mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(selectedMapLocation, style: TextStyle(fontSize: 26)),
-              Text('Some data here with prediction and graphs'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(selectedMapLocation, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+                  Text(DateFormat('yyyy-MM-dd').format(today), style: TextStyle(fontSize: 20)),
+                ],
+              ),
+              Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Total: ' + formatNumber(_covidTotalData[index].total), style: TextStyle(fontSize: 20)),
+                      Text('Active: ' + formatNumber(_covidTotalData[index].active), style: TextStyle(fontSize: 20)),
+                      Text('Recovered: ' + formatNumber(_covidTotalData[index].recovered), style: TextStyle(fontSize: 20)),
+                      Text('Deaths: ' + formatNumber(_covidTotalData[index].deaths), style: TextStyle(fontSize: 20)),
+                    ],
+                  ),
+                  Text('Some graphs here with prediction', style: TextStyle(fontSize: 20)),
+                  CircularProgressIndicator(),
+                ],
+              )
             ],
           ),
         ));
@@ -153,43 +216,40 @@ class _MySfMapState extends State<MySfMap> {
       future: asyncInit(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data == false) return Center(child: CircularProgressIndicator());
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-          child: GestureDetector(
-            onTap: () {
-              var index = mapController.selectedIndex;
-              if (index != -1) {
-                selectedMapLocation = _covidTotalData[index].countryName;
-                showParamsBottomSheet();
-              }
-            },
-            child: SfMaps(
-              layers: <MapShapeLayer>[
-                MapShapeLayer(
-                  delegate: _mapShapeDelegate,
-                  enableSelection: true,
-                  controller: mapController,
-                  legendSource: MapElement.shape,
-                  legendSettings: MapLegendSettings(
-                    position: MapLegendPosition.bottom,
-                    textStyle: TextStyle(fontSize: 15, color: Colors.black),
-                    iconSize: Size(15, 15),
-                    iconType: MapIconType.circle,
-                  ),
-                  selectionSettings: MapSelectionSettings(
-                    color: HexColor.fromHex('#085f63'),
-                    strokeWidth: 3,
-                    strokeColor: HexColor.fromHex('#293462'),
-                  ),
-                  tooltipSettings: MapTooltipSettings(
-                    color: HexColor.fromHex('#303a52'),
-                    textStyle: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                  enableShapeTooltip: true,
-                  zoomPanBehavior: _zoomPanBehavior,
-                )
-              ],
-            ),
+        return GestureDetector(
+          onTap: () {
+            var index = mapController.selectedIndex;
+            if (index != -1) {
+              selectedMapLocation = _covidTotalData[index].countryName;
+              showParamsBottomSheet(index);
+            }
+          },
+          child: SfMaps(
+            layers: <MapShapeLayer>[
+              MapShapeLayer(
+                delegate: _mapShapeDelegate,
+                enableSelection: true,
+                controller: mapController,
+                legendSource: MapElement.shape,
+                legendSettings: MapLegendSettings(
+                  position: MapLegendPosition.bottom,
+                  textStyle: TextStyle(fontSize: 15, color: Colors.black),
+                  iconSize: Size(15, 15),
+                  iconType: MapIconType.circle,
+                ),
+                selectionSettings: MapSelectionSettings(
+                  color: HexColor.fromHex('#085f63'),
+                  strokeWidth: 3,
+                  strokeColor: HexColor.fromHex('#293462'),
+                ),
+                tooltipSettings: MapTooltipSettings(
+                  color: HexColor.fromHex('#303a52'),
+                  textStyle: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                enableShapeTooltip: true,
+                zoomPanBehavior: _zoomPanBehavior,
+              )
+            ],
           ),
         );
       },
