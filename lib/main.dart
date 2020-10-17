@@ -16,6 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: MyHomePage(),
+      theme: ThemeData(fontFamily: 'ALS_Sector'),
     );
   }
 }
@@ -56,8 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
         showSearchBox: true,
         dropdownBuilder: (context, item, isSelected) => Text(item, style: TextStyle(fontSize: 23)),
         dropdownSearchDecoration: InputDecoration(
-          labelStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          contentPadding: EdgeInsets.fromLTRB(12, 12, 0, 0),
+          labelStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+          contentPadding: EdgeInsets.fromLTRB(12, 16, 0, 0),
           border: OutlineInputBorder(),
         ),
         onChanged: (value) => setState(() => selectedDDLocation = value),
